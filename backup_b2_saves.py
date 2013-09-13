@@ -1144,34 +1144,40 @@ def parse_args():
     return p.parse_args()
 
 
-
-
 def get_class_lvl(data):
-    return data['class'],data['level']
+    return data['class'], data['level']
 
 
 def main(options, args):
     import shutil
-    if len(args) >= 2 and args[0] != "-" and args[0] == args[1]:
-       print >>sys.stderr, "Cannot overwrite the save file, please use a different filename for the new save"
-       return
+    import glob
+    import os
+    saves = glob.glob('Save*.sav')
+    print saves
 
-    if len(args) < 1 or args[0] == "-":
-        input = sys.stdin
-    else:
-        input = open(args[0], "rb")
-        fn=args[0]
-    print input
-    savegame = input.read()
-    player = unwrap_player_data(savegame)
-    data = read_protobuf(player)
-    data = apply_structure(data, save_structure)
-    print data.keys()
-    classe,niveau = data['class'].split('.')[0],data['level']
-    savename="%s.%s.%s"%(fn,classe,niveau)
-    print savename
-    shutil.copy(fn,savename)
-
+    import zipfile
+    import datetime
+    
+    zipname = "Backup-%s.zip" % datetime.date.isoformat(datetime.date.today())
+    print zipname
+    backup = zipfile.ZipFile(zipname,'a')
+    for save in saves:
+        print save
+        input = open(save, "rb")
+        print input
+        savegame = input.read()
+        player = unwrap_player_data(savegame)
+        data = read_protobuf(player)
+        data = apply_structure(data, save_structure)
+        print data.keys()
+        classe, niveau = data['class'].split('.')[0], data['level']
+        savename = "%s.%s.%s" % (classe, niveau, save)
+        print savename
+        shutil.copy(save, savename)
+        backup.write(savename)
+        input.close()
+        os.remove(savename)
+    backup.close()
 if __name__ == "__main__":
     options, args = parse_args()
     try:
